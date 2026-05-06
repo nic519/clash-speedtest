@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/faceair/clash-speedtest/speedtester"
+	"github.com/nic519/clash-speedtest/speedtester"
 )
 
 // TestTUIModelUpdate tests the TUI model update logic

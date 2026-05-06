@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/faceair/clash-speedtest/speedtester"
+	"github.com/nic519/clash-speedtest/speedtester"
 )
 
 func (m *tuiModel) toggleDetail(result *speedtester.Result) {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/faceair/clash-speedtest/speedtester"
+	"github.com/nic519/clash-speedtest/speedtester"
 )
 
 func TestTUIModelHeaderClickSort(t *testing.T) {

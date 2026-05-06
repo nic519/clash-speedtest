@@ -7,8 +7,8 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/faceair/clash-speedtest/output"
-	"github.com/faceair/clash-speedtest/speedtester"
+	"github.com/nic519/clash-speedtest/output"
+	"github.com/nic519/clash-speedtest/speedtester"
 )
 
 // Messages for TUI updates

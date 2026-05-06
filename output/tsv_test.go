@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/faceair/clash-speedtest/speedtester"
+	"github.com/nic519/clash-speedtest/speedtester"
 )
 
 func TestNewTSVWriter(t *testing.T) {

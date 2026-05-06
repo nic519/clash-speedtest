@@ -26,19 +26,19 @@ func TestParseRepoAddress(t *testing.T) {
 		},
 		{
 			name:          "github url",
-			input:         "https://github.com/faceair/clash-speedtest",
+			input:         "https://github.com/nic519/clash-speedtest",
 			expectedOwner: "faceair",
 			expectedRepo:  "clash-speedtest",
 		},
 		{
 			name:          "github url without scheme",
-			input:         "github.com/faceair/clash-speedtest",
+			input:         "github.com/nic519/clash-speedtest",
 			expectedOwner: "faceair",
 			expectedRepo:  "clash-speedtest",
 		},
 		{
 			name:          "git suffix",
-			input:         "https://github.com/faceair/clash-speedtest.git",
+			input:         "https://github.com/nic519/clash-speedtest.git",
 			expectedOwner: "faceair",
 			expectedRepo:  "clash-speedtest",
 		},
@@ -127,7 +127,7 @@ func TestUpdateRepoFile(t *testing.T) {
 		defer server.Close()
 
 		uploader := NewUploaderWithBase(server.Client(), server.URL)
-		if err := uploader.UpdateRepoFile("test-token", "https://github.com/faceair/clash-speedtest", "configs/result.yaml", "main", []byte("payload")); err != nil {
+		if err := uploader.UpdateRepoFile("test-token", "https://github.com/nic519/clash-speedtest", "configs/result.yaml", "main", []byte("payload")); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		if requestCount != 2 {

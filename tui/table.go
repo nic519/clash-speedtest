@@ -5,8 +5,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/faceair/clash-speedtest/output"
-	"github.com/faceair/clash-speedtest/speedtester"
+	"github.com/nic519/clash-speedtest/output"
+	"github.com/nic519/clash-speedtest/speedtester"
 )
 
 // updateTableRows updates the table rows with current results
