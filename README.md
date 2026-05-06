@@ -51,6 +51,8 @@ Usage of clash-speedtest:
         block proxies by keywords, use | to separate multiple keywords (example: -b 'rate|x1|1x')
   -server-url string
         server url or direct download url (default "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg")
+  -latency-url string
+        url used for latency testing, defaults to server-url target
   -speed-mode string
         speed test mode: fast, download, full (default "download")
   -download-size int
@@ -129,6 +131,20 @@ Premium|广港|IEPL|05                        	3.87MB/s    	249.00ms
 4.      🇭🇰 香港 HK-19           Trojan          649ms
 5.      🇭🇰 香港 HK-12           Trojan          667ms
 
+# 6.1 批量测试多个网站延迟并输出 CSV 报表
+> scripts/multi_site_latency_report.sh -c ~/.config/clash/config.yaml -f 'HK|港'
+# 默认会测试 YouTube / X / GitHub，并生成：
+# - reports/YYYYMMDD-HHmm/YYYYMMDD-HHmm-details.csv
+# - reports/YYYYMMDD-HHmm/YYYYMMDD-HHmm-summary.csv
+#
+# summary.csv 会按节点横向展开各网站延迟，便于后期汇总、对比。
+#
+# 也可以自定义站点：
+> scripts/multi_site_latency_report.sh -c ~/.config/clash/config.yaml -f 'HK|港' \
+    -s 'YouTube|https://www.youtube.com/generate_204' \
+    -s 'X|https://x.com' \
+    -s 'GitHub|https://github.com'
+
 # 7. 上传到 GitHub Gist
 > clash-speedtest -c config.yaml -output result.yaml -gist-token "ghp_xxx" -gist-address "https://gist.github.com/user/abc123"
 # 测试完成后，会将 result.yaml 上传到指定的 Gist，文件名与 -output 保持一致（去除目录前缀）
@@ -192,6 +208,12 @@ Premium|广港|IEPL|05                        	3.87MB/s    	249.00ms
 
 当 server-url 不带 path 时 (使用 https://speed.cloudflare.com 或自建测速服务)，使用 /__down 和 /__up 完成下载与上传测试。
 当 server-url 带 path 时，会被识别为直接下载地址，只进行下载测速。
+
+延迟测试默认访问 `server-url` 对应的目标。也可以通过 `latency-url` 单独指定要测试访问延迟的网址，例如只筛选香港节点并测试访问 YouTube 的延迟：
+
+```shell
+clash-speedtest -c config.yaml -f 'HK|港' --speed-mode fast --latency-url "https://www.youtube.com/generate_204"
+```
 
 如果你确认 https://speed.cloudflare.com 可以访问并希望测试上传，请显式设置为 full 模式，例如：
 ```shell
