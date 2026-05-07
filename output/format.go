@@ -8,9 +8,9 @@ import (
 )
 
 // GetHeaders returns table headers based on speed mode.
-// fast: ID, Name, Type, Latency
-// download: ID, Name, Type, Latency, Jitter, Packet Loss, Download Speed
-// full: ID, Name, Type, Latency, Jitter, Packet Loss, Download Speed, Upload Speed
+// fast: ID, Name, Type, Latency, Proxy ID
+// download: ID, Name, Type, Latency, Jitter, Packet Loss, Download Speed, Proxy ID
+// full: ID, Name, Type, Latency, Jitter, Packet Loss, Download Speed, Upload Speed, Proxy ID
 func GetHeaders(mode speedtester.SpeedMode) []string {
 	if mode.IsFast() {
 		return []string{
@@ -18,6 +18,7 @@ func GetHeaders(mode speedtester.SpeedMode) []string {
 			"节点名称",
 			"类型",
 			"延迟",
+			"节点ID",
 		}
 	}
 	headers := []string{
@@ -32,7 +33,7 @@ func GetHeaders(mode speedtester.SpeedMode) []string {
 	if mode.UploadEnabled() {
 		headers = append(headers, "上传速度")
 	}
-	return headers
+	return append(headers, "节点ID")
 }
 
 // FormatRow formats a single result row without ANSI colors.
@@ -46,6 +47,7 @@ func FormatRow(result *speedtester.Result, mode speedtester.SpeedMode, index int
 			result.ProxyName,
 			result.ProxyType,
 			result.FormatLatency(),
+			ProxyID(result),
 		}
 	}
 	row := []string{
@@ -60,7 +62,7 @@ func FormatRow(result *speedtester.Result, mode speedtester.SpeedMode, index int
 	if mode.UploadEnabled() {
 		row = append(row, result.FormatUploadSpeed())
 	}
-	return row
+	return append(row, ProxyID(result))
 }
 
 // SortResults sorts results based on speed mode.

@@ -18,17 +18,17 @@ func TestNewTSVWriter(t *testing.T) {
 		{
 			name:           "fast mode header",
 			mode:           speedtester.SpeedModeFast,
-			expectedHeader: "序号\t节点名称\t类型\t延迟\n",
+			expectedHeader: "序号\t节点名称\t类型\t延迟\t节点ID\n",
 		},
 		{
 			name:           "download-only mode header",
 			mode:           speedtester.SpeedModeDownload,
-			expectedHeader: "序号\t节点名称\t类型\t延迟\t抖动\t丢包率\t下载速度\n",
+			expectedHeader: "序号\t节点名称\t类型\t延迟\t抖动\t丢包率\t下载速度\t节点ID\n",
 		},
 		{
 			name:           "upload-enabled mode header",
 			mode:           speedtester.SpeedModeFull,
-			expectedHeader: "序号\t节点名称\t类型\t延迟\t抖动\t丢包率\t下载速度\t上传速度\n",
+			expectedHeader: "序号\t节点名称\t类型\t延迟\t抖动\t丢包率\t下载速度\t上传速度\t节点ID\n",
 		},
 	}
 
@@ -68,7 +68,7 @@ func TestTSVWriter_WriteRow(t *testing.T) {
 				Latency:   500 * time.Millisecond,
 			},
 			index:       0,
-			expectedRow: "1.\tTest Proxy\tTrojan\t500ms\n",
+			expectedRow: "1.\tTest Proxy\tTrojan\t500ms\t45e615e1b53a3508\n",
 		},
 		{
 			name: "download-only mode row",
@@ -83,7 +83,7 @@ func TestTSVWriter_WriteRow(t *testing.T) {
 				UploadSpeed:   5 * 1024 * 1024,
 			},
 			index:       1,
-			expectedRow: "2.\tTest Proxy\tTrojan\t500ms\t50ms\t5.0%\t10.00MB/s\n",
+			expectedRow: "2.\tTest Proxy\tTrojan\t500ms\t50ms\t5.0%\t10.00MB/s\t45e615e1b53a3508\n",
 		},
 		{
 			name: "row with N/A values",
@@ -98,7 +98,7 @@ func TestTSVWriter_WriteRow(t *testing.T) {
 				UploadSpeed:   0,
 			},
 			index:       2,
-			expectedRow: "3.\tFailed Proxy\tShadowsocks\tN/A\tN/A\t100.0%\tN/A\n",
+			expectedRow: "3.\tFailed Proxy\tShadowsocks\tN/A\tN/A\t100.0%\tN/A\t81ca6f252f9846d7\n",
 		},
 		{
 			name: "upload-enabled row with errors",
@@ -113,7 +113,7 @@ func TestTSVWriter_WriteRow(t *testing.T) {
 				UploadError:   "upload failed: 500",
 			},
 			index:       3,
-			expectedRow: "4.\tError Proxy\tVmess\t300ms\t10ms\t2.0%\tdownload failed: timeout\tupload failed: 500\n",
+			expectedRow: "4.\tError Proxy\tVmess\t300ms\t10ms\t2.0%\tdownload failed: timeout\tupload failed: 500\te7420bd49beeca50\n",
 		},
 	}
 
@@ -163,7 +163,7 @@ func TestTSVWriter_WriteRows(t *testing.T) {
 					Latency:   200 * time.Millisecond,
 				},
 			},
-			expectedRows: "1.\tProxy 1\tTrojan\t100ms\n2.\tProxy 2\tShadowsocks\t200ms\n",
+			expectedRows: "1.\tProxy 1\tTrojan\t100ms\t5ec926ce6e8b2e1f\n2.\tProxy 2\tShadowsocks\t200ms\te8a20a8091736896\n",
 		},
 		{
 			name: "upload-enabled mode multiple rows",
@@ -188,7 +188,7 @@ func TestTSVWriter_WriteRows(t *testing.T) {
 					UploadSpeed:   8 * 1024 * 1024,
 				},
 			},
-			expectedRows: "1.\tProxy 1\tTrojan\t100ms\t10ms\t0.0%\t20.00MB/s\t10.00MB/s\n2.\tProxy 2\tShadowsocks\t200ms\t20ms\t5.0%\t15.00MB/s\t8.00MB/s\n",
+			expectedRows: "1.\tProxy 1\tTrojan\t100ms\t10ms\t0.0%\t20.00MB/s\t10.00MB/s\t5ec926ce6e8b2e1f\n2.\tProxy 2\tShadowsocks\t200ms\t20ms\t5.0%\t15.00MB/s\t8.00MB/s\te8a20a8091736896\n",
 		},
 	}
 
