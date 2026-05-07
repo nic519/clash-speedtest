@@ -27,6 +27,7 @@ type Config struct {
 	FilterRegex      string
 	BlockRegex       string
 	ServerURL        string
+	LatencyURL       string
 	DownloadSize     int
 	UploadSize       int
 	Timeout          time.Duration
@@ -86,6 +87,7 @@ type SpeedTester struct {
 	serverMode       serverMode
 	serverBaseURL    string
 	downloadURL      string
+	latencyURL       string
 	mode             SpeedMode
 }
 
@@ -107,6 +109,10 @@ func New(config *Config) (*SpeedTester, error) {
 	if err != nil {
 		return nil, err
 	}
+	latencyURL, err := resolveLatencyURL(config.LatencyURL, target)
+	if err != nil {
+		return nil, err
+	}
 	if mode == SpeedModeFull && config.UploadSize <= 0 {
 		return nil, fmt.Errorf("upload size must be positive when speed mode is %s", mode)
 	}
@@ -119,6 +125,7 @@ func New(config *Config) (*SpeedTester, error) {
 		serverMode:    target.mode,
 		serverBaseURL: target.baseURL,
 		downloadURL:   target.downloadURL,
+		latencyURL:    latencyURL,
 		mode:          mode,
 	}, nil
 }
@@ -156,6 +163,27 @@ func resolveServerTarget(rawURL string) (*serverTarget, error) {
 		mode:        serverModeDirectDownload,
 		downloadURL: trimmed,
 	}, nil
+}
+
+func resolveLatencyURL(rawURL string, target *serverTarget) (string, error) {
+	trimmed := strings.TrimSpace(rawURL)
+	if trimmed == "" {
+		if target.mode == serverModeDirectDownload {
+			return target.downloadURL, nil
+		}
+		return target.baseURL, nil
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("parse latency url %q failed: %w", rawURL, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("latency url %q must include scheme and host", rawURL)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("latency url %q must use http or https scheme, got %q", rawURL, parsed.Scheme)
+	}
+	return trimmed, nil
 }
 
 type CProxy struct {
@@ -536,7 +564,7 @@ func (st *SpeedTester) testLatency(proxy constant.Proxy, minLatency time.Duratio
 		time.Sleep(100 * time.Millisecond)
 
 		start := time.Now()
-		req, err := http.NewRequest(http.MethodHead, st.downloadURL, nil)
+		req, err := http.NewRequest(http.MethodHead, st.latencyURL, nil)
 		if err != nil {
 			failedPings++
 			continue

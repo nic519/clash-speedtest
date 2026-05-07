@@ -30,6 +30,7 @@ var (
 	filterRegexConfig = flag.String("f", ".+", "filter proxies by name, use regexp")
 	blockKeywords     = flag.String("b", "", "block proxies by keywords, use | to separate multiple keywords (example: -b 'rate|x1|1x')")
 	serverURL         = flag.String("server-url", "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg", "server url or direct download url")
+	latencyURL        = flag.String("latency-url", "", "url used for latency testing, defaults to server-url target")
 	speedMode         = flag.String("speed-mode", "download", "speed test mode: fast, download, full")
 	downloadSize      = flag.Int("download-size", 50*1024*1024, "download size for testing proxies")
 	uploadSize        = flag.Int("upload-size", 20*1024*1024, "upload size for testing proxies (full mode only)")
@@ -72,7 +73,7 @@ func main() {
 	if !*fastMode {
 		requestedMode, err = speedtester.ParseSpeedMode(*speedMode)
 		if err != nil {
-			log.Fatalln("parse speed mode failed: %s", err)
+			log.Fatalf("parse speed mode failed: %s", err)
 		}
 	}
 
@@ -81,6 +82,7 @@ func main() {
 		FilterRegex:      *filterRegexConfig,
 		BlockRegex:       *blockKeywords,
 		ServerURL:        *serverURL,
+		LatencyURL:       *latencyURL,
 		DownloadSize:     *downloadSize,
 		UploadSize:       *uploadSize,
 		Timeout:          *timeout,
@@ -94,13 +96,13 @@ func main() {
 		UserAgent:        *userAgent,
 	})
 	if err != nil {
-		log.Fatalln("create speed tester failed: %s", err)
+		log.Fatalf("create speed tester failed: %s", err)
 	}
 	effectiveMode := speedTester.Mode()
 
 	allProxies, err := speedTester.LoadProxies()
 	if err != nil {
-		log.Fatalln("load proxies failed: %s", err)
+		log.Fatalf("load proxies failed: %s", err)
 	}
 
 	outputMode := output.DetermineOutputMode(output.IsTerminalFile)
@@ -110,7 +112,7 @@ func main() {
 		var err error
 		tsvWriter, err = output.NewTSVWriter(os.Stdout, effectiveMode)
 		if err != nil {
-			log.Fatalln("create TSV writer failed: %s", err)
+			log.Fatalf("create TSV writer failed: %s", err)
 		}
 	}
 
@@ -151,7 +153,7 @@ func main() {
 			tea.WithMouseAllMotion(),
 		)
 		if _, err := p.Run(); err != nil {
-			log.Fatalln("TUI failed: %s", err)
+			log.Fatalf("TUI failed: %s", err)
 		}
 
 		if !collectResults {
@@ -160,7 +162,7 @@ func main() {
 
 		err = <-saveResult
 		if err != nil {
-			log.Fatalln("save config file failed: %s", err)
+			log.Fatalf("save config file failed: %s", err)
 		}
 		fmt.Printf("\nsave config file to: %s\n", *outputPath)
 		return
@@ -182,7 +184,7 @@ func main() {
 	if *outputPath != "" {
 		err = saveConfig(results, effectiveMode)
 		if err != nil {
-			log.Fatalln("save config file failed: %s", err)
+			log.Fatalf("save config file failed: %s", err)
 		}
 		fmt.Printf("\nsave config file to: %s\n", *outputPath)
 	}
