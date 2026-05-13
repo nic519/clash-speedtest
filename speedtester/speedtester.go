@@ -39,6 +39,10 @@ type Config struct {
 	Mode             SpeedMode
 	OutputPath       string
 	UserAgent        string // optional; empty means use default (mihomo kernel UA)
+	ProbeURL         string
+	ProbeMethod      string
+	ProbeTimeout     time.Duration
+	ProbeFields      map[string]string
 }
 
 type serverMode int
@@ -389,6 +393,7 @@ type Result struct {
 	UploadTime    time.Duration  `json:"upload_time"`
 	UploadSpeed   float64        `json:"upload_speed"`
 	UploadError   string         `json:"upload_error"`
+	Probe         *ProbeResult   `json:"probe,omitempty"`
 }
 
 func (r *Result) FormatDownloadSpeed() string {
@@ -471,6 +476,7 @@ func (st *SpeedTester) testProxy(name string, proxy *CProxy) *Result {
 	result.Latency = latencyResult.avgLatency
 	result.Jitter = latencyResult.jitter
 	result.PacketLoss = latencyResult.packetLoss
+	result.Probe = st.runProbe(proxy)
 
 	if st.mode.IsFast() || result.PacketLoss == 100 {
 		return result
@@ -545,6 +551,24 @@ func (st *SpeedTester) testProxy(name string, proxy *CProxy) *Result {
 	}
 
 	return result
+}
+
+func (st *SpeedTester) runProbe(proxy constant.Proxy) *ProbeResult {
+	if strings.TrimSpace(st.config.ProbeURL) == "" {
+		return nil
+	}
+	timeout := st.config.ProbeTimeout
+	if timeout <= 0 {
+		timeout = st.config.Timeout
+	}
+	client := st.createClient(proxy, timeout)
+	defer client.CloseIdleConnections()
+	return RunProbeWithClient(client, ProbeConfig{
+		URL:     st.config.ProbeURL,
+		Method:  st.config.ProbeMethod,
+		Timeout: timeout,
+		Fields:  st.config.ProbeFields,
+	})
 }
 
 type latencyResult struct {

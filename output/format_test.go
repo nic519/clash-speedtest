@@ -10,7 +10,7 @@ import (
 func TestGetHeaders(t *testing.T) {
 	t.Run("fast mode", func(t *testing.T) {
 		headers := GetHeaders(speedtester.SpeedModeFast)
-		expected := []string{"序号", "节点名称", "类型", "延迟", "节点ID"}
+		expected := []string{"序号", "节点名称", "类型", "延迟"}
 		if len(headers) != len(expected) {
 			t.Errorf("expected %d headers, got %d", len(expected), len(headers))
 		}
@@ -23,7 +23,7 @@ func TestGetHeaders(t *testing.T) {
 
 	t.Run("download-only mode", func(t *testing.T) {
 		headers := GetHeaders(speedtester.SpeedModeDownload)
-		expected := []string{"序号", "节点名称", "类型", "延迟", "抖动", "丢包率", "下载速度", "节点ID"}
+		expected := []string{"序号", "节点名称", "类型", "延迟", "抖动", "丢包率", "下载速度"}
 		if len(headers) != len(expected) {
 			t.Errorf("expected %d headers, got %d", len(expected), len(headers))
 		}
@@ -36,7 +36,7 @@ func TestGetHeaders(t *testing.T) {
 
 	t.Run("upload-enabled mode", func(t *testing.T) {
 		headers := GetHeaders(speedtester.SpeedModeFull)
-		expected := []string{"序号", "节点名称", "类型", "延迟", "抖动", "丢包率", "下载速度", "上传速度", "节点ID"}
+		expected := []string{"序号", "节点名称", "类型", "延迟", "抖动", "丢包率", "下载速度", "上传速度"}
 		if len(headers) != len(expected) {
 			t.Errorf("expected %d headers, got %d", len(expected), len(headers))
 		}
@@ -48,6 +48,36 @@ func TestGetHeaders(t *testing.T) {
 	})
 }
 
+func TestGetTSVHeadersIncludesProbeColumns(t *testing.T) {
+	headers := GetTSVHeaders(speedtester.SpeedModeFast)
+	expected := []string{
+		"序号",
+		"节点名称",
+		"类型",
+		"延迟",
+		"Probe URL",
+		"Probe 延迟",
+		"Probe 状态",
+		"Probe 错误",
+		"probe.ip",
+		"probe.country",
+		"probe.country_code",
+		"probe.region",
+		"probe.city",
+		"probe.asn",
+		"probe.org",
+		"节点ID",
+	}
+	if len(headers) != len(expected) {
+		t.Fatalf("expected %d TSV headers, got %d", len(expected), len(headers))
+	}
+	for i, h := range headers {
+		if h != expected[i] {
+			t.Errorf("header %d: expected %q, got %q", i, expected[i], h)
+		}
+	}
+}
+
 func TestFormatRow(t *testing.T) {
 	result := &speedtester.Result{
 		ProxyName:     "Test Proxy",
@@ -57,11 +87,26 @@ func TestFormatRow(t *testing.T) {
 		PacketLoss:    5.0,
 		DownloadSpeed: 10 * 1024 * 1024, // 10 MB/s
 		UploadSpeed:   5 * 1024 * 1024,  // 5 MB/s
+		Probe: &speedtester.ProbeResult{
+			URL:        "https://ipapi.co/json/",
+			Method:     "GET",
+			Latency:    80 * time.Millisecond,
+			StatusCode: 200,
+			Fields: map[string]string{
+				"ip":           "203.0.113.10",
+				"country":      "Japan",
+				"country_code": "JP",
+				"region":       "Tokyo",
+				"city":         "Tokyo",
+				"asn":          "AS64500",
+				"org":          "Example Transit",
+			},
+		},
 	}
 
 	t.Run("fast mode", func(t *testing.T) {
 		row := FormatRow(result, speedtester.SpeedModeFast, 0)
-		if len(row) != 5 {
+		if len(row) != 4 {
 			t.Errorf("expected 5 columns in fast mode, got %d", len(row))
 		}
 		if row[0] != "1." {
@@ -80,7 +125,7 @@ func TestFormatRow(t *testing.T) {
 
 	t.Run("download-only mode", func(t *testing.T) {
 		row := FormatRow(result, speedtester.SpeedModeDownload, 0)
-		if len(row) != 8 {
+		if len(row) != 7 {
 			t.Errorf("expected 8 columns in download-only mode, got %d", len(row))
 		}
 		if row[0] != "1." {
@@ -108,7 +153,7 @@ func TestFormatRow(t *testing.T) {
 
 	t.Run("upload-enabled mode", func(t *testing.T) {
 		row := FormatRow(result, speedtester.SpeedModeFull, 0)
-		if len(row) != 9 {
+		if len(row) != 8 {
 			t.Errorf("expected 9 columns in upload-enabled mode, got %d", len(row))
 		}
 		if row[0] != "1." {
@@ -253,8 +298,8 @@ func TestResultFormatting(t *testing.T) {
 
 		// Test upload-enabled mode
 		headers := GetHeaders(speedtester.SpeedModeFull)
-		if len(headers) != 9 {
-			t.Errorf("expected 9 headers in upload-enabled mode, got %d", len(headers))
+		if len(headers) != 8 {
+			t.Errorf("expected 8 headers in upload-enabled mode, got %d", len(headers))
 		}
 
 		results = SortResults(results, speedtester.SpeedModeFull)
@@ -263,8 +308,8 @@ func TestResultFormatting(t *testing.T) {
 		}
 
 		row := FormatRow(results[0], speedtester.SpeedModeFull, 0)
-		if len(row) != 9 {
-			t.Errorf("expected 9 columns, got %d", len(row))
+		if len(row) != 8 {
+			t.Errorf("expected 8 columns, got %d", len(row))
 		}
 		if row[1] != "Proxy B" {
 			t.Errorf("expected proxy name 'Proxy B', got %q", row[1])
@@ -277,13 +322,13 @@ func TestResultFormatting(t *testing.T) {
 		}
 
 		headers = GetHeaders(speedtester.SpeedModeFast)
-		if len(headers) != 5 {
-			t.Errorf("expected 5 headers in fast mode, got %d", len(headers))
+		if len(headers) != 4 {
+			t.Errorf("expected 4 headers in fast mode, got %d", len(headers))
 		}
 
 		row = FormatRow(results[0], speedtester.SpeedModeFast, 0)
-		if len(row) != 5 {
-			t.Errorf("expected 5 columns, got %d", len(row))
+		if len(row) != 4 {
+			t.Errorf("expected 4 columns, got %d", len(row))
 		}
 		if row[1] != "Proxy B" {
 			t.Errorf("expected proxy name 'Proxy B', got %q", row[1])

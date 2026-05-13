@@ -3,9 +3,21 @@ package output
 import (
 	"fmt"
 	"sort"
+	"strconv"
+	"time"
 
 	"github.com/nic519/clash-speedtest/speedtester"
 )
+
+var probeFieldColumns = []string{
+	"ip",
+	"country",
+	"country_code",
+	"region",
+	"city",
+	"asn",
+	"org",
+}
 
 // GetHeaders returns table headers based on speed mode.
 // fast: ID, Name, Type, Latency, Proxy ID
@@ -18,7 +30,6 @@ func GetHeaders(mode speedtester.SpeedMode) []string {
 			"节点名称",
 			"类型",
 			"延迟",
-			"节点ID",
 		}
 	}
 	headers := []string{
@@ -33,7 +44,11 @@ func GetHeaders(mode speedtester.SpeedMode) []string {
 	if mode.UploadEnabled() {
 		headers = append(headers, "上传速度")
 	}
-	return append(headers, "节点ID")
+	return headers
+}
+
+func GetTSVHeaders(mode speedtester.SpeedMode) []string {
+	return appendProbeHeaders(GetHeaders(mode))
 }
 
 // FormatRow formats a single result row without ANSI colors.
@@ -47,7 +62,6 @@ func FormatRow(result *speedtester.Result, mode speedtester.SpeedMode, index int
 			result.ProxyName,
 			result.ProxyType,
 			result.FormatLatency(),
-			ProxyID(result),
 		}
 	}
 	row := []string{
@@ -62,7 +76,53 @@ func FormatRow(result *speedtester.Result, mode speedtester.SpeedMode, index int
 	if mode.UploadEnabled() {
 		row = append(row, result.FormatUploadSpeed())
 	}
+	return row
+}
+
+func FormatTSVRow(result *speedtester.Result, mode speedtester.SpeedMode, index int) []string {
+	row := FormatRow(result, mode, index)
+	return appendProbeColumns(row, result)
+}
+
+func appendProbeHeaders(headers []string) []string {
+	headers = append(headers, "Probe URL", "Probe 延迟", "Probe 状态", "Probe 错误")
+	for _, field := range probeFieldColumns {
+		headers = append(headers, "probe."+field)
+	}
+	return append(headers, "节点ID")
+}
+
+func appendProbeColumns(row []string, result *speedtester.Result) []string {
+	row = append(row, formatProbe(result)...)
 	return append(row, ProxyID(result))
+}
+
+func formatProbe(result *speedtester.Result) []string {
+	values := []string{"", "", "", ""}
+	for range probeFieldColumns {
+		values = append(values, "")
+	}
+	if result == nil || result.Probe == nil {
+		return values
+	}
+	probe := result.Probe
+	values[0] = probe.URL
+	values[1] = formatDuration(probe.Latency)
+	if probe.StatusCode > 0 {
+		values[2] = strconv.Itoa(probe.StatusCode)
+	}
+	values[3] = probe.Error
+	for index, field := range probeFieldColumns {
+		values[4+index] = probe.Fields[field]
+	}
+	return values
+}
+
+func formatDuration(value time.Duration) string {
+	if value <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("%dms", value.Milliseconds())
 }
 
 // SortResults sorts results based on speed mode.

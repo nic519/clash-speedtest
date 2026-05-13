@@ -34,7 +34,7 @@ func (w *TSVWriter) writeHeader() error {
 	if w.headerWritten {
 		return nil
 	}
-	headers := GetHeaders(w.mode)
+	headers := GetTSVHeaders(w.mode)
 	_, err := w.output.Write([]byte(strings.Join(headers, "\t") + "\n"))
 	if err != nil {
 		return fmt.Errorf("write header failed: %w", err)
@@ -49,7 +49,7 @@ func (w *TSVWriter) WriteRow(result *speedtester.Result, index int) error {
 	if result == nil {
 		return errors.New("cannot write nil result")
 	}
-	row := FormatRow(result, w.mode, index)
+	row := FormatTSVRow(result, w.mode, index)
 	_, err := w.output.Write([]byte(strings.Join(row, "\t") + "\n"))
 	if err != nil {
 		return fmt.Errorf("write row for proxy %q (index %d) failed: %w", result.ProxyName, index, err)

@@ -54,6 +54,14 @@ Usage of clash-speedtest:
         server url or direct download url (default "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg")
   -latency-url string
         url used for latency testing, defaults to server-url target
+  -probe-url string
+        optional URL to probe through each proxy
+  -probe-method string
+        HTTP method for probe URL (default "GET")
+  -probe-timeout duration
+        timeout for probing each proxy (default 5s)
+  -probe-fields string
+        comma-separated JSON field mappings for probe output, e.g. ip=ip,country=country_name
   -speed-mode string
         speed test mode: fast, download, full (default "download")
   -download-size int
@@ -146,6 +154,15 @@ Premium|广港|IEPL|05                        	3.87MB/s    	249.00ms
     -s 'X|https://x.com' \
     -s 'GitHub|https://github.com'
 
+# 6.2 通过节点出口访问 probe URL，输出出口 IP / 地区 / ASN
+> clash-speedtest -f 'HK|港' -fast -c ~/.config/clash/config.yaml \
+    --latency-url "https://www.youtube.com/generate_204" \
+    --probe-url "https://ipapi.co/json/" \
+    --probe-fields "ip=ip,country=country_name,country_code=country_code,region=region,city=city,asn=asn,org=org"
+#
+# probe 请求会通过当前正在测试的代理节点发出。
+# TSV 输出中会追加 Probe URL、Probe 延迟、Probe 状态、probe.ip、probe.country、probe.asn 等列。
+
 # 7. 上传到 GitHub Gist
 > clash-speedtest -c config.yaml -output result.yaml -gist-token "ghp_xxx" -gist-address "https://gist.github.com/user/abc123"
 # 测试完成后，会将 result.yaml 上传到指定的 Gist，文件名与 -output 保持一致（去除目录前缀）
@@ -216,6 +233,8 @@ Premium|广港|IEPL|05                        	3.87MB/s    	249.00ms
 clash-speedtest -c config.yaml -f 'HK|港' --speed-mode fast --latency-url "https://www.youtube.com/generate_204"
 ```
 
+probe 测试和延迟测试使用同一个代理拨号链路：工具会先为当前节点创建 HTTP client，再通过这个 client 访问 `probe-url`。因此访问 `https://ipapi.co/json/` 时拿到的是该代理节点的出口信息，而不是本机公网 IP。`probe-fields` 用于把 JSON 响应字段映射到 TSV 输出列，换 IP 检测后端时通常只需要调整 `probe-url` 和 `probe-fields`。
+
 如果你确认 https://speed.cloudflare.com 可以访问并希望测试上传，请显式设置为 full 模式，例如：
 ```shell
 clash-speedtest --server-url "https://speed.cloudflare.com" --speed-mode full
@@ -243,3 +262,21 @@ clash-speedtest --server-url "https://speed.cloudflare.com" --speed-mode full
 ## License
 
 [GPL-3.0](LICENSE)
+
+## 重新编译
+
+这个项目默认不提交构建产物。修改 Go 代码后，可以在仓库根目录重新编译本机二进制：
+
+```bash
+go test ./speedtester ./output ./tui
+go build -ldflags "-X main.version=0.1.3 -X main.commit=$(git rev-parse --short HEAD)" -o ~/go/bin/clash-speedtest .
+~/go/bin/clash-speedtest -v
+```
+
+如果要给 Latency Compass 桌面 app 使用，`main.version` 必须和桌面 app 的 `package.json` 版本一致。当前桌面 app 要求：
+
+```text
+clash-speedtest version 0.1.3
+```
+
+版本不一致时，桌面 app 会把依赖状态标记为不可用，并提示先重新编译或安装匹配版本。

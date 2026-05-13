@@ -10,12 +10,12 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	mihomolog "github.com/metacubex/mihomo/log"
 	"github.com/nic519/clash-speedtest/gist"
 	"github.com/nic519/clash-speedtest/ip"
 	"github.com/nic519/clash-speedtest/output"
 	"github.com/nic519/clash-speedtest/speedtester"
 	"github.com/nic519/clash-speedtest/tui"
-	mihomolog "github.com/metacubex/mihomo/log"
 	"gopkg.in/yaml.v2"
 )
 
@@ -52,6 +52,10 @@ var (
 	fastMode          = flag.Bool("fast", false, "fast mode (alias for --speed-mode fast)")
 	versionFlag       = flag.Bool("v", false, "show version information")
 	userAgent         = flag.String("ua", "", "User-Agent for fetching config from http(s) URL (default: mihomo kernel UA, e.g. mihomo/1.10.0)")
+	probeURL          = flag.String("probe-url", "", "optional URL to probe through each proxy")
+	probeMethod       = flag.String("probe-method", "GET", "HTTP method for probe URL")
+	probeTimeout      = flag.Duration("probe-timeout", time.Second*5, "timeout for probing each proxy")
+	probeFields       = flag.String("probe-fields", "", "comma-separated JSON field mappings for probe output, e.g. ip=ip,country=country_name")
 )
 
 func main() {
@@ -94,6 +98,10 @@ func main() {
 		Mode:             requestedMode,
 		OutputPath:       *outputPath,
 		UserAgent:        *userAgent,
+		ProbeURL:         *probeURL,
+		ProbeMethod:      *probeMethod,
+		ProbeTimeout:     *probeTimeout,
+		ProbeFields:      speedtester.ParseProbeFieldMappings(*probeFields),
 	})
 	if err != nil {
 		log.Fatalf("create speed tester failed: %s", err)
