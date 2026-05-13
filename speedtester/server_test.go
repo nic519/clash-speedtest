@@ -3,6 +3,7 @@ package speedtester
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestResolveServerTarget(t *testing.T) {
@@ -165,5 +166,40 @@ func TestNewRejectsInvalidLatencyURL(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "latency url") {
 		t.Fatalf("expected error to include latency url context, got %v", err)
+	}
+}
+
+func TestNewDefaultsLatencyTimeoutToRequestTimeout(t *testing.T) {
+	st, err := New(&Config{
+		ServerURL:    "https://example.com/file.bin",
+		DownloadSize: 10,
+		Concurrent:   1,
+		Mode:         SpeedModeFast,
+		Timeout:      8 * time.Second,
+		MaxLatency:   time.Second,
+	})
+	if err != nil {
+		t.Fatalf("New failed: %v", err)
+	}
+	if st.latencyTimeout != 8*time.Second {
+		t.Fatalf("expected latency timeout to default to request timeout, got %s", st.latencyTimeout)
+	}
+}
+
+func TestNewUsesConfiguredLatencyTimeout(t *testing.T) {
+	st, err := New(&Config{
+		ServerURL:      "https://example.com/file.bin",
+		DownloadSize:   10,
+		Concurrent:     1,
+		Mode:           SpeedModeFast,
+		Timeout:        8 * time.Second,
+		MaxLatency:     time.Second,
+		LatencyTimeout: 12 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("New failed: %v", err)
+	}
+	if st.latencyTimeout != 12*time.Second {
+		t.Fatalf("expected configured latency timeout, got %s", st.latencyTimeout)
 	}
 }

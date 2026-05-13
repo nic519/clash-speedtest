@@ -82,6 +82,7 @@ func RunProbeWithClient(client *http.Client, config ProbeConfig) *ProbeResult {
 		result.Error = fmt.Sprintf("create probe request failed: %v", err)
 		return result
 	}
+	request.Header.Set("User-Agent", "clash-speedtest/1.0")
 
 	start := time.Now()
 	response, err := probeClient.Do(request)

@@ -29,6 +29,9 @@ func TestRunProbeExtractsMappedJSONFields(t *testing.T) {
 		if request.Method != http.MethodGet {
 			t.Fatalf("expected GET probe request, got %s", request.Method)
 		}
+		if request.UserAgent() == "" {
+			t.Fatal("expected probe request to include a User-Agent")
+		}
 		writer.Header().Set("Content-Type", "application/json")
 		writer.WriteHeader(http.StatusOK)
 		_, _ = writer.Write([]byte(`{

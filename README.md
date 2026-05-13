@@ -54,6 +54,8 @@ Usage of clash-speedtest:
         server url or direct download url (default "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg")
   -latency-url string
         url used for latency testing, defaults to server-url target
+  -latency-timeout duration
+        timeout for each latency request, defaults to --timeout
   -probe-url string
         optional URL to probe through each proxy
   -probe-method string
@@ -75,7 +77,7 @@ Usage of clash-speedtest:
   -output string
         output config file path (default "")
   -max-latency duration
-        filter latency greater than this value (default 800ms)
+        filter latency greater than this value (default 1s)
   -max-packet-loss float
         filter packet loss greater than this value(unit: %) (default 100)
   -min-download-speed float
@@ -157,8 +159,10 @@ Premium|广港|IEPL|05                        	3.87MB/s    	249.00ms
 # 6.2 通过节点出口访问 probe URL，输出出口 IP / 地区 / ASN
 > clash-speedtest -f 'HK|港' -fast -c ~/.config/clash/config.yaml \
     --latency-url "https://www.youtube.com/generate_204" \
-    --probe-url "https://ipapi.co/json/" \
-    --probe-fields "ip=ip,country=country_name,country_code=country_code,region=region,city=city,asn=asn,org=org"
+    --latency-timeout "8s" \
+    --probe-url "https://api.ip.sb/geoip/" \
+    --probe-timeout "8s" \
+    --probe-fields "ip=ip,country=country,country_code=country_code,region=region,city=city,asn=asn,org=organization"
 #
 # probe 请求会通过当前正在测试的代理节点发出。
 # TSV 输出中会追加 Probe URL、Probe 延迟、Probe 状态、probe.ip、probe.country、probe.asn 等列。
@@ -230,10 +234,14 @@ Premium|广港|IEPL|05                        	3.87MB/s    	249.00ms
 延迟测试默认访问 `server-url` 对应的目标。也可以通过 `latency-url` 单独指定要测试访问延迟的网址，例如只筛选香港节点并测试访问 YouTube 的延迟：
 
 ```shell
-clash-speedtest -c config.yaml -f 'HK|港' --speed-mode fast --latency-url "https://www.youtube.com/generate_204"
+clash-speedtest -c config.yaml -f 'HK|港' --speed-mode fast \
+  --latency-url "https://www.youtube.com/generate_204" \
+  --latency-timeout "8s"
 ```
 
-probe 测试和延迟测试使用同一个代理拨号链路：工具会先为当前节点创建 HTTP client，再通过这个 client 访问 `probe-url`。因此访问 `https://ipapi.co/json/` 时拿到的是该代理节点的出口信息，而不是本机公网 IP。`probe-fields` 用于把 JSON 响应字段映射到 TSV 输出列，换 IP 检测后端时通常只需要调整 `probe-url` 和 `probe-fields`。
+`latency-timeout` 控制每一次延迟探测请求最多等待多久，默认跟随 `timeout`。`max-latency` 只负责在输出配置时筛掉平均延迟过高的节点，不再作为访问 YouTube、X、GitHub 等目标站点时的 HTTP 请求超时时间。
+
+probe 测试和延迟测试使用同一个代理拨号链路：工具会先为当前节点创建 HTTP client，再通过这个 client 访问 `probe-url`。因此访问 `https://api.ip.sb/geoip/` 时拿到的是该代理节点的出口信息，而不是本机公网 IP。`probe-fields` 用于把 JSON 响应字段映射到 TSV 输出列，换 IP 检测后端时通常只需要调整 `probe-url` 和 `probe-fields`。
 
 如果你确认 https://speed.cloudflare.com 可以访问并希望测试上传，请显式设置为 full 模式，例如：
 ```shell

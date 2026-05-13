@@ -35,6 +35,7 @@ var (
 	downloadSize      = flag.Int("download-size", 50*1024*1024, "download size for testing proxies")
 	uploadSize        = flag.Int("upload-size", 20*1024*1024, "upload size for testing proxies (full mode only)")
 	timeout           = flag.Duration("timeout", time.Second*5, "timeout for testing proxies")
+	latencyTimeout    = flag.Duration("latency-timeout", 0, "timeout for each latency request, defaults to --timeout")
 	concurrent        = flag.Int("concurrent", 4, "download concurrent size")
 	outputPath        = flag.String("output", "", "output config file path")
 	gistToken         = flag.String("gist-token", "", "github gist token for updating output")
@@ -90,6 +91,7 @@ func main() {
 		DownloadSize:     *downloadSize,
 		UploadSize:       *uploadSize,
 		Timeout:          *timeout,
+		LatencyTimeout:   *latencyTimeout,
 		Concurrent:       *concurrent,
 		MaxPacketLoss:    *maxPacketLoss,
 		MaxLatency:       *maxLatency,

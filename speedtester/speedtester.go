@@ -31,6 +31,7 @@ type Config struct {
 	DownloadSize     int
 	UploadSize       int
 	Timeout          time.Duration
+	LatencyTimeout   time.Duration
 	Concurrent       int
 	MaxLatency       time.Duration
 	MaxPacketLoss    float64
@@ -92,6 +93,7 @@ type SpeedTester struct {
 	serverBaseURL    string
 	downloadURL      string
 	latencyURL       string
+	latencyTimeout   time.Duration
 	mode             SpeedMode
 }
 
@@ -104,6 +106,9 @@ func New(config *Config) (*SpeedTester, error) {
 	}
 	if config.UploadSize < 0 {
 		config.UploadSize = 10 * 1024 * 1024
+	}
+	if config.Timeout <= 0 {
+		config.Timeout = 5 * time.Second
 	}
 	mode := config.Mode
 	if mode == "" {
@@ -125,12 +130,13 @@ func New(config *Config) (*SpeedTester, error) {
 	}
 	config.Mode = mode
 	return &SpeedTester{
-		config:        config,
-		serverMode:    target.mode,
-		serverBaseURL: target.baseURL,
-		downloadURL:   target.downloadURL,
-		latencyURL:    latencyURL,
-		mode:          mode,
+		config:         config,
+		serverMode:     target.mode,
+		serverBaseURL:  target.baseURL,
+		downloadURL:    target.downloadURL,
+		latencyURL:     latencyURL,
+		latencyTimeout: resolveLatencyTimeout(config),
+		mode:           mode,
 	}, nil
 }
 
@@ -188,6 +194,13 @@ func resolveLatencyURL(rawURL string, target *serverTarget) (string, error) {
 		return "", fmt.Errorf("latency url %q must use http or https scheme, got %q", rawURL, parsed.Scheme)
 	}
 	return trimmed, nil
+}
+
+func resolveLatencyTimeout(config *Config) time.Duration {
+	if config.LatencyTimeout > 0 {
+		return config.LatencyTimeout
+	}
+	return config.Timeout
 }
 
 type CProxy struct {
@@ -472,7 +485,7 @@ func (st *SpeedTester) testProxy(name string, proxy *CProxy) *Result {
 	}
 
 	// 1. 首先进行延迟测试
-	latencyResult := st.testLatency(proxy, st.config.MaxLatency)
+	latencyResult := st.testLatency(proxy)
 	result.Latency = latencyResult.avgLatency
 	result.Jitter = latencyResult.jitter
 	result.PacketLoss = latencyResult.packetLoss
@@ -577,8 +590,8 @@ type latencyResult struct {
 	packetLoss float64
 }
 
-func (st *SpeedTester) testLatency(proxy constant.Proxy, minLatency time.Duration) *latencyResult {
-	client := st.createClient(proxy, minLatency)
+func (st *SpeedTester) testLatency(proxy constant.Proxy) *latencyResult {
+	client := st.createClient(proxy, st.latencyTimeout)
 	defer client.CloseIdleConnections()
 
 	latencies := make([]time.Duration, 0, 6)
