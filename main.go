@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -24,6 +25,24 @@ var (
 	version = "dev"
 	commit  = "unknown"
 )
+
+func resolveVersion(injectedVersion, buildInfoVersion string) string {
+	if injectedVersion != "" && injectedVersion != "dev" {
+		return injectedVersion
+	}
+	if buildInfoVersion != "" && buildInfoVersion != "(devel)" {
+		return strings.TrimPrefix(buildInfoVersion, "v")
+	}
+	return injectedVersion
+}
+
+func buildInfoVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	return info.Main.Version
+}
 
 var (
 	configPathsConfig = flag.String("c", "", "config file path, also support http(s) url")
@@ -65,7 +84,7 @@ func main() {
 
 	// Handle version flag
 	if *versionFlag {
-		fmt.Printf("clash-speedtest version %s (commit %s)\n", version, commit)
+		fmt.Printf("clash-speedtest version %s (commit %s)\n", resolveVersion(version, buildInfoVersion()), commit)
 		os.Exit(0)
 	}
 
