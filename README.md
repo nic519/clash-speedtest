@@ -74,6 +74,8 @@ Usage of clash-speedtest:
         timeout for testing proxies (default 5s)
   -concurrent int
         download concurrent size (default 4)
+  -proxy-concurrent int
+        proxy test concurrent size (default 1)
   -output string
         output config file path (default "")
   -max-latency duration
@@ -240,6 +242,8 @@ clash-speedtest -c config.yaml -f 'HK|港' --speed-mode fast \
 ```
 
 `latency-timeout` 控制每一次延迟探测请求最多等待多久，默认跟随 `timeout`。`max-latency` 只负责在输出配置时筛掉平均延迟过高的节点，不再作为访问 YouTube、X、GitHub 等目标站点时的 HTTP 请求超时时间。
+
+`proxy-concurrent` 控制同时测试多少个代理节点。它和 `concurrent` 不同：`concurrent` 只控制单个节点测速时的下载分片并发；`proxy-concurrent` 控制节点级 worker pool，可以避免慢节点或坏节点把整个测试队列串行堵住。默认值为 `1`，以保持旧版串行测速语义；需要加速时可以显式调到 `2`、`4` 或 `8`，并发越高越可能因为本机网络、目标站点限流或同机场资源争抢而影响结果。
 
 probe 测试和延迟测试使用同一个代理拨号链路：工具会先为当前节点创建 HTTP client，再通过这个 client 访问 `probe-url`。因此访问 `https://api.ip.sb/geoip/` 时拿到的是该代理节点的出口信息，而不是本机公网 IP。`probe-fields` 用于把 JSON 响应字段映射到 TSV 输出列，换 IP 检测后端时通常只需要调整 `probe-url` 和 `probe-fields`。
 

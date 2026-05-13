@@ -33,6 +33,7 @@ type Config struct {
 	Timeout          time.Duration
 	LatencyTimeout   time.Duration
 	Concurrent       int
+	ProxyConcurrent  int
 	MaxLatency       time.Duration
 	MaxPacketLoss    float64
 	MinDownloadSpeed float64
@@ -100,6 +101,9 @@ type SpeedTester struct {
 func New(config *Config) (*SpeedTester, error) {
 	if config.Concurrent <= 0 {
 		config.Concurrent = 1
+	}
+	if config.ProxyConcurrent <= 0 {
+		config.ProxyConcurrent = 1
 	}
 	if config.DownloadSize < 0 {
 		config.DownloadSize = 100 * 1024 * 1024
@@ -386,8 +390,52 @@ func buildProxyServerPortKey(proxy *CProxy) (string, bool) {
 }
 
 func (st *SpeedTester) TestProxies(proxies map[string]*CProxy, tester func(result *Result)) {
-	for name, proxy := range proxies {
-		tester(st.testProxy(name, proxy))
+	runProxyJobs(proxies, st.config.ProxyConcurrent, st.testProxy, tester)
+}
+
+func runProxyJobs(
+	proxies map[string]*CProxy,
+	proxyConcurrent int,
+	run func(name string, proxy *CProxy) *Result,
+	tester func(result *Result),
+) {
+	if proxyConcurrent <= 0 {
+		proxyConcurrent = 1
+	}
+	if proxyConcurrent > len(proxies) && len(proxies) > 0 {
+		proxyConcurrent = len(proxies)
+	}
+
+	type proxyJob struct {
+		name  string
+		proxy *CProxy
+	}
+
+	jobs := make(chan proxyJob)
+	results := make(chan *Result, len(proxies))
+	var wg sync.WaitGroup
+
+	for i := 0; i < proxyConcurrent; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for job := range jobs {
+				results <- run(job.name, job.proxy)
+			}
+		}()
+	}
+
+	go func() {
+		for name, proxy := range proxies {
+			jobs <- proxyJob{name: name, proxy: proxy}
+		}
+		close(jobs)
+		wg.Wait()
+		close(results)
+	}()
+
+	for result := range results {
+		tester(result)
 	}
 }
 

@@ -1,6 +1,7 @@
 package speedtester
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -74,6 +75,87 @@ func TestResultFormatErrors(t *testing.T) {
 	}
 	if result.FormatUploadSpeedValue() == result.UploadError {
 		t.Fatalf("expected upload speed value to ignore error string")
+	}
+}
+
+func TestNewDefaultsProxyConcurrent(t *testing.T) {
+	st, err := New(&Config{
+		ServerURL: "https://example.com",
+		Mode:      SpeedModeFast,
+	})
+	if err != nil {
+		t.Fatalf("New failed: %v", err)
+	}
+	if st.config.ProxyConcurrent != 1 {
+		t.Fatalf("expected proxy concurrency to default to 1, got %d", st.config.ProxyConcurrent)
+	}
+
+	st, err = New(&Config{
+		ServerURL:       "https://example.com",
+		Mode:            SpeedModeFast,
+		ProxyConcurrent: 0,
+	})
+	if err != nil {
+		t.Fatalf("New failed: %v", err)
+	}
+	if st.config.ProxyConcurrent != 1 {
+		t.Fatalf("expected non-positive proxy concurrency to normalize to 1, got %d", st.config.ProxyConcurrent)
+	}
+}
+
+func TestRunProxyJobsHonorsProxyConcurrentLimit(t *testing.T) {
+	proxies := map[string]*CProxy{
+		"proxy-a": {},
+		"proxy-b": {},
+		"proxy-c": {},
+		"proxy-d": {},
+	}
+	started := make(chan struct{}, len(proxies))
+	release := make(chan struct{})
+	var active int32
+	var maxActive int32
+
+	done := make(chan struct{})
+	go func() {
+		runProxyJobs(proxies, 2, func(name string, proxy *CProxy) *Result {
+			current := atomic.AddInt32(&active, 1)
+			for {
+				observed := atomic.LoadInt32(&maxActive)
+				if current <= observed || atomic.CompareAndSwapInt32(&maxActive, observed, current) {
+					break
+				}
+			}
+			started <- struct{}{}
+			<-release
+			atomic.AddInt32(&active, -1)
+			return &Result{ProxyName: name}
+		}, func(result *Result) {})
+		close(done)
+	}()
+
+	for i := 0; i < 2; i++ {
+		select {
+		case <-started:
+		case <-time.After(time.Second):
+			t.Fatal("expected first two proxy jobs to start")
+		}
+	}
+
+	select {
+	case <-started:
+		t.Fatal("expected proxy concurrency limit to block a third job")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("expected proxy jobs to finish")
+	}
+
+	if maxActive != 2 {
+		t.Fatalf("expected at most 2 active proxy jobs, got %d", maxActive)
 	}
 }
 

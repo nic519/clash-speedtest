@@ -56,6 +56,7 @@ var (
 	timeout           = flag.Duration("timeout", time.Second*5, "timeout for testing proxies")
 	latencyTimeout    = flag.Duration("latency-timeout", 0, "timeout for each latency request, defaults to --timeout")
 	concurrent        = flag.Int("concurrent", 4, "download concurrent size")
+	proxyConcurrent   = flag.Int("proxy-concurrent", 1, "proxy test concurrent size")
 	outputPath        = flag.String("output", "", "output config file path")
 	gistToken         = flag.String("gist-token", "", "github gist token for updating output")
 	gistAddress       = flag.String("gist-address", "", "github gist address or id for updating output (filename uses output basename)")
@@ -112,6 +113,7 @@ func main() {
 		Timeout:          *timeout,
 		LatencyTimeout:   *latencyTimeout,
 		Concurrent:       *concurrent,
+		ProxyConcurrent:  *proxyConcurrent,
 		MaxPacketLoss:    *maxPacketLoss,
 		MaxLatency:       *maxLatency,
 		MinDownloadSpeed: *minDownloadSpeed * 1024 * 1024,
